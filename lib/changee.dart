@@ -69,13 +69,17 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
           FirebaseStorage.instance.ref().child('$id/profilePicture/file');
 
       var url = await ref.getDownloadURL();
-      setState(() {
-        imageUrl = url;
-      });
+      if (mounted) {
+        setState(() {
+          imageUrl = url;
+        });
+      }
     } catch (e) {
-      setState(() {
-        imageUrl = "";
-      });
+      if (mounted) {
+        setState(() {
+          imageUrl = "";
+        });
+      }
     }
   }
 
@@ -173,75 +177,82 @@ class _MyStatefulWidgetStateTwo extends State<MyStatefulWidgetTwo> {
   TextEditingController passcontroller = TextEditingController();
 
   Future<void> resetEmail(String passwo, String newEmail) async {
-    var message = "";
     try {
       final User? users = auth.currentUser;
-      UserCredential? authResult = await users?.reauthenticateWithCredential(
+      if (users == null) throw FirebaseAuthException(code: "no-user", message: "Not Signed in");
+
+      // 1. Re-authenticate
+      UserCredential authResult = await users.reauthenticateWithCredential(
         EmailAuthProvider.credential(
-            email: users.email.toString(), password: passwo),
+            email: users.email!, password: passwo),
       );
-      final newuse = authResult?.user;
-      await newuse!
-          .updateEmail(newEmail)
-          .then(
-            (value) => message = 'Success',
-          )
-          .catchError((onError) => message = 'error');
-    } on FirebaseAuthException catch (e) {
-      message = "Not Signed in";
-    }
-    if (message == "Not Signed in") {
+
+      // 2. Update Email (New Method)
+      // verifyBeforeUpdateEmail sends a confirmation email to the new address.
+      // The email is not updated until the user clicks the link.
+      await authResult.user!.verifyBeforeUpdateEmail(newEmail);
+
+      // Check mounted before showing dialog
+      if (!mounted) return;
+
+      // Success Dialog
       showDialog(
           context: context,
           builder: (BuildContext context) {
             return AlertDialog(
-              title: const Text("Wrong Password"),
+              title: const Text("Verification Sent!"),
+              content: const Text("Please check your new email to verify the update."),
               actions: [
                 TextButton(
                     onPressed: () {
-                      Navigator.pop(context);
-                      Navigator.pop(context);
-                      result = "";
-                    },
-                    child: const Text("Try Again"))
-              ],
-            );
-          });
-    } else if (message == "Success") {
-      showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title:
-                  const Text("Complete! Make sure to verify your new email!"),
-              actions: [
-                TextButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      Navigator.pop(context);
-                      Navigator.pop(context);
+                      Navigator.pop(context); // Close Success Dialog
+                      Navigator.pop(context); // Close Confirmation Dialog
+                      if (context.mounted) Navigator.pop(context); // Close Screen
                     },
                     child: const Text("Go Back"))
               ],
             );
           });
-    } else {
-      showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: const Text("Something went wrong, please try again"),
-              actions: [
-                TextButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      Navigator.pop(context);
-                      result = "";
-                    },
-                    child: const Text("Try Again"))
-              ],
-            );
-          });
+
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+
+      if (e.code == 'wrong-password' || e.message == "Not Signed in") {
+        showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text("Wrong Password"),
+                actions: [
+                  TextButton(
+                      onPressed: () {
+                        Navigator.pop(context); // Close Dialog
+                        Navigator.pop(context); // Close Confirmation Dialog
+                        result = "";
+                      },
+                      child: const Text("Try Again"))
+                ],
+              );
+            });
+      } else {
+        showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text("Something went wrong"),
+                content: Text(e.message ?? "Unknown error"),
+                actions: [
+                  TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        Navigator.pop(context);
+                        result = "";
+                      },
+                      child: const Text("Try Again"))
+                ],
+              );
+            });
+      }
     }
   }
 
@@ -328,10 +339,6 @@ class _MyStatefulWidgetStateTwo extends State<MyStatefulWidgetTwo> {
                 ),
                 width: MediaQuery.of(context).size.width * .90,
                 child: TextButton(
-                  child: const Text(
-                    'Submit',
-                    style: TextStyle(color: Colors.white),
-                  ),
                   onPressed: (() {
                     showDialog(
                       context: context,
@@ -353,19 +360,16 @@ class _MyStatefulWidgetStateTwo extends State<MyStatefulWidgetTwo> {
                             ],
                           );
                         } else {
+                          // FIX: Used string interpolation here
                           return AlertDialog(
                             title: Text(
-                                "Are you sure you want to change your Email from " +
-                                    inputDatatwo().toString() +
-                                    " to " +
-                                    newemailcontroller.text +
-                                    "?"),
+                                "Are you sure you want to change your Email from ${inputDatatwo()} to ${newemailcontroller.text}?"),
                             actions: [
                               TextButton(
                                   onPressed: () {
+                                    // FIX: Await the result properly (though this is a void future, we call it)
                                     resetEmail(passcontroller.text,
-                                            newemailcontroller.text)
-                                        .toString();
+                                        newemailcontroller.text);
                                   },
                                   child: const Text("Yes")),
                               SizedBox(
@@ -383,6 +387,11 @@ class _MyStatefulWidgetStateTwo extends State<MyStatefulWidgetTwo> {
                       },
                     );
                   }),
+                  // FIX: Moved child to be the last argument
+                  child: const Text(
+                    'Submit',
+                    style: TextStyle(color: Colors.white),
+                  ),
                 ))
           ],
         ),

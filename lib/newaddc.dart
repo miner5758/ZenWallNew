@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_credit_card/credit_card_brand.dart';
 import 'package:flutter_credit_card/flutter_credit_card.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -43,9 +42,10 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
 
   @override
   void initState() {
+    // FIX: Replaced deprecated withOpacity with withValues
     border = OutlineInputBorder(
       borderSide: BorderSide(
-        color: Colors.grey.withOpacity(0.7),
+        color: Colors.grey.withValues(alpha: 0.7),
         width: 2.0,
       ),
     );
@@ -55,8 +55,6 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
 
   @override
   void dispose() {
-    // Clean up the controller when the widget is removed from the widget tree.
-    // This also removes the _printLatestValue listener.
     cardnamecontroller.dispose();
     super.dispose();
   }
@@ -177,56 +175,64 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
                           isExpiryDateVisible: true,
                           cardHolderName: cardHolderName,
                           expiryDate: expiryDate,
-                          themeColor: Colors.blue,
-                          textColor: Colors.black,
-                          cardNumberDecoration: InputDecoration(
-                            labelText: 'Number',
-                            hintText: 'XXXX XXXX XXXX XXXX',
-                            hintStyle: const TextStyle(color: Colors.black),
-                            labelStyle: const TextStyle(color: Colors.black),
-                            focusedBorder: border,
-                            enabledBorder: const OutlineInputBorder(
-                              borderSide: BorderSide(
-                                  color: Color.fromARGB(255, 0, 0, 0),
-                                  width: 0.0),
-                            ),
-                          ),
-                          expiryDateDecoration: InputDecoration(
-                            hintStyle: const TextStyle(color: Colors.black),
-                            labelStyle: const TextStyle(color: Colors.black),
-                            focusedBorder: border,
-                            enabledBorder: const OutlineInputBorder(
-                              borderSide: BorderSide(
-                                  color: Color.fromARGB(255, 0, 0, 0),
-                                  width: 0.0),
-                            ),
-                            labelText: 'Expired Date',
-                            hintText: 'XX/XX',
-                          ),
-                          cvvCodeDecoration: InputDecoration(
-                            hintStyle: const TextStyle(color: Colors.black),
-                            labelStyle: const TextStyle(color: Colors.black),
-                            focusedBorder: border,
-                            enabledBorder: const OutlineInputBorder(
-                              borderSide: BorderSide(
-                                  color: Color.fromARGB(255, 0, 0, 0),
-                                  width: 0.0),
-                            ),
-                            labelText: 'CVV',
-                            hintText: 'XXX',
-                          ),
-                          cardHolderDecoration: InputDecoration(
-                            hintStyle: const TextStyle(color: Colors.black),
-                            labelStyle: const TextStyle(color: Colors.black),
-                            focusedBorder: border,
-                            enabledBorder: const OutlineInputBorder(
-                              borderSide: BorderSide(
-                                  color: Color.fromARGB(255, 0, 0, 0),
-                                  width: 0.0),
-                            ),
-                            labelText: 'Card Holder',
-                          ),
                           onCreditCardModelChange: onCreditCardModelChange,
+
+                          // FIX: Moved all styling into InputConfiguration
+                          inputConfiguration: InputConfiguration(
+                            // Define text styles since 'textColor' is removed
+                            cardNumberTextStyle: const TextStyle(color: Colors.black),
+                            cardHolderTextStyle: const TextStyle(color: Colors.black),
+                            expiryDateTextStyle: const TextStyle(color: Colors.black),
+                            cvvCodeTextStyle: const TextStyle(color: Colors.black),
+
+                            cardNumberDecoration: InputDecoration(
+                              labelText: 'Number',
+                              hintText: 'XXXX XXXX XXXX XXXX',
+                              hintStyle: const TextStyle(color: Colors.black),
+                              labelStyle: const TextStyle(color: Colors.black),
+                              focusedBorder: border,
+                              enabledBorder: const OutlineInputBorder(
+                                borderSide: BorderSide(
+                                    color: Color.fromARGB(255, 0, 0, 0),
+                                    width: 0.0),
+                              ),
+                            ),
+                            expiryDateDecoration: InputDecoration(
+                              hintStyle: const TextStyle(color: Colors.black),
+                              labelStyle: const TextStyle(color: Colors.black),
+                              focusedBorder: border,
+                              enabledBorder: const OutlineInputBorder(
+                                borderSide: BorderSide(
+                                    color: Color.fromARGB(255, 0, 0, 0),
+                                    width: 0.0),
+                              ),
+                              labelText: 'Expired Date',
+                              hintText: 'XX/XX',
+                            ),
+                            cvvCodeDecoration: InputDecoration(
+                              hintStyle: const TextStyle(color: Colors.black),
+                              labelStyle: const TextStyle(color: Colors.black),
+                              focusedBorder: border,
+                              enabledBorder: const OutlineInputBorder(
+                                borderSide: BorderSide(
+                                    color: Color.fromARGB(255, 0, 0, 0),
+                                    width: 0.0),
+                              ),
+                              labelText: 'CVV',
+                              hintText: 'XXX',
+                            ),
+                            cardHolderDecoration: InputDecoration(
+                              hintStyle: const TextStyle(color: Colors.black),
+                              labelStyle: const TextStyle(color: Colors.black),
+                              focusedBorder: border,
+                              enabledBorder: const OutlineInputBorder(
+                                borderSide: BorderSide(
+                                    color: Color.fromARGB(255, 0, 0, 0),
+                                    width: 0.0),
+                              ),
+                              labelText: 'Card Holder',
+                            ),
+                          ),
                         ),
                         const SizedBox(
                           height: 20,
@@ -239,7 +245,8 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8.0),
                             ),
-                            primary: const Color(0xff1b447b),
+                            // FIX: Changed primary to backgroundColor
+                            backgroundColor: const Color(0xff1b447b),
                           ),
                           child: Container(
                             margin: const EdgeInsets.all(12),
@@ -253,7 +260,8 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
                               ),
                             ),
                           ),
-                          onPressed: () {
+                          // FIX: Converted to async/await with mounted checks
+                          onPressed: () async {
                             if (formKey.currentState!.validate()) {
                               final city = {
                                 "Card Num": cardNumber.toString(),
@@ -267,34 +275,39 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
                                   .doc(inputData())
                                   .collection("Cards")
                                   .doc(cardnamecontroller.text);
-                              collection
-                                  .set(city) // <-- Your data
-                                  .catchError(
-                                    (error) => showDialog(
-                                        context: context,
-                                        builder: (BuildContext context) {
-                                          return AlertDialog(
-                                            title: const Text(
-                                              "Something went wrong, please try again",
-                                              style: TextStyle(
-                                                  fontSize: 30,
-                                                  fontWeight: FontWeight.bold),
-                                            ),
-                                            actions: [
-                                              TextButton(
-                                                  onPressed: () {
-                                                    Navigator.pop(context);
-                                                  },
-                                                  child: const Text("Close"))
-                                            ],
-                                          );
-                                        }),
-                                  );
 
-                              Navigator.popUntil(
-                                  context,
-                                  (Route<dynamic> predicate) =>
-                                      predicate.isFirst);
+                              try {
+                                await collection.set(city);
+                                
+                                if (!context.mounted) return;
+
+                                Navigator.popUntil(
+                                    context,
+                                    (Route<dynamic> predicate) =>
+                                        predicate.isFirst);
+                              } catch (error) {
+                                if (!context.mounted) return;
+
+                                showDialog(
+                                    context: context,
+                                    builder: (BuildContext context) {
+                                      return AlertDialog(
+                                        title: const Text(
+                                          "Something went wrong, please try again",
+                                          style: TextStyle(
+                                              fontSize: 30,
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                              onPressed: () {
+                                                Navigator.pop(context);
+                                              },
+                                              child: const Text("Close"))
+                                        ],
+                                      );
+                                    });
+                              }
                             } else {
                               showDialog(
                                   context: context,
@@ -331,8 +344,11 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
   }
 
   void onCreditCardModelChange(CreditCardModel? creditCardModel) {
+    // Safety check for null model
+    if (creditCardModel == null) return;
+    
     setState(() {
-      cardNumber = creditCardModel!.cardNumber;
+      cardNumber = creditCardModel.cardNumber;
       expiryDate = creditCardModel.expiryDate;
       cardHolderName = creditCardModel.cardHolderName;
       cvvCode = creditCardModel.cvvCode;

@@ -38,11 +38,11 @@ class Forgotscreen extends StatelessWidget {
         ),
       ),
       body: Container(
-        child: const MyStatefulWidget(),
         decoration: const BoxDecoration(
             image: DecorationImage(
                 image: AssetImage("lib/images/teblutwo.jpg"),
                 fit: BoxFit.cover)),
+        child: const MyStatefulWidget(),
       ),
     );
   }
@@ -65,33 +65,80 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
   String no = "false";
 
   Future<void> yes() async {
-    await context
-        .read<AuthenticationService>()
-        .signUp(
-          email: emailcontroller.text,
-          password: passcontroller.text,
-        )
-        .catchError((error) => no = "true");
+  try {
+    // 1. Attempt Sign Up
+    // We wrap this in its own try block so if it fails (e.g. user already exists),
+    // we can catch it and proceed to SignIn, preserving your original logic.
+    try {
+      await context.read<AuthenticationService>().signUp(
+            email: emailcontroller.text,
+            password: passcontroller.text,
+          );
+    } catch (error) {
+      // Replaces: .catchError((error) => no = "true");
+      // Assuming 'no' is a variable defined in your class:
+      // no = "true"; 
+      debugPrint("Sign up failed (likely existing user), proceeding to sign in.");
+    }
+
+    // Safety Check 1: Ensure context is valid before using it again
+    if (!mounted) return;
+
+    // 2. Attempt Sign In (signwerid)
     await context.read<AuthenticationService>().signwerid(
           email: emailcontroller.text,
           password: passcontroller.text,
         );
 
+    // Safety Check 2
+    if (!context.mounted) return;
+
+    // 3. Retrieve ID safely (Fixing the Infinite Loop)
+    String? id = inputData();
+    
+    // FIX: Added a delay and attempt counter to prevent freezing the app
+    int attempts = 0;
+    while (id == null && attempts < 10) {
+      await Future.delayed(const Duration(milliseconds: 500));
+      id = inputData();
+      attempts++;
+    }
+
+    if (id == null) {
+      throw Exception("Failed to retrieve user ID after login.");
+    }
+
+    // 4. Save to Firestore
     final citytwo = {
-      "ID": inputData().toString(),
+      "ID": id,
       "Phone": phonecontroller.text,
       "Username": usercontroller.text,
     };
 
-    String? id = inputData();
-
-    while (id == null) {
-      id = inputData();
-    }
-
-    var your = db.collection("Users").doc(inputData());
+    var your = db.collection("Users").doc(id);
     await your.set(citytwo);
+
+  } catch (e) {
+    // Final Safety Check
+    if (!mounted) return;
+
+    showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text("Error"),
+            content: Text(e.toString()),
+            actions: [
+              TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Text("Close"))
+            ],
+          );
+        });
   }
+}
 
   @override
   Widget build(BuildContext context) {

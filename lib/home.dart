@@ -30,10 +30,10 @@ Future<List<String>> _getData() async {
 }
 
 Future<List<Object?>> _gettata(String? iD) async {
-  CollectionReference _collectionRef =
+  CollectionReference collectionRef =
       db.collection("Users").doc("$iD").collection("Purchases");
   // Get docs from collection reference
-  QuerySnapshot querySnapshot = await _collectionRef.get();
+  QuerySnapshot querySnapshot = await collectionRef.get();
 
   // Get data from docs and convert map to List
   final allData = querySnapshot.docs.map((doc) => doc.data()).toList();
@@ -100,8 +100,7 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
 
-    if (state == AppLifecycleState.inactive ||
-        state == AppLifecycleState.paused) return;
+    if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) return;
 
     final isClosed = state == AppLifecycleState.detached;
 
@@ -110,7 +109,7 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget>
     }
   }
 
-  refresh() {
+  void refresh() {
     setState(() {});
   }
 
@@ -371,16 +370,16 @@ class _MyStatefulWidgetStateTwo extends State<MyStatefulWidgetTwo> {
                                 padding: const EdgeInsets.all(0.0),
                                 itemCount: snapshot.data.length,
                                 itemBuilder: (context, index) {
-                                  if (lnapshots.data[snapshot.data
-                                              .indexOf(snapshot.data[index])]
-                                          ["Transfer"] ==
-                                      true) {
+                                  // We grab the specific transaction data once here
+                                  var transactionData = lnapshots.data[
+                                      snapshot.data
+                                          .indexOf(snapshot.data[index])];
+
+                                  if (transactionData["Transfer"] == true) {
                                     return SizedBox(
                                       child: Card(
                                         child: ExpansionTile(
-                                          title: Text(lnapshots
-                                              .data[snapshot.data.indexOf(
-                                                  snapshot.data[index])]["From"]
+                                          title: Text(transactionData["From"]
                                               .toString()),
                                           children: <Widget>[
                                             Column(
@@ -389,40 +388,24 @@ class _MyStatefulWidgetStateTwo extends State<MyStatefulWidgetTwo> {
                                                   child: ListTile(
                                                     trailing:
                                                         const FlutterLogo(),
-                                                    title: Text("Money Spent: " +
-                                                        lnapshots.data[snapshot
-                                                                .data
-                                                                .indexOf(snapshot
-                                                                        .data[
-                                                                    index])]["Value"]
-                                                            .toString()),
+                                                    title: Text(
+                                                        "Money Spent: ${transactionData["Value"]}"),
                                                   ),
                                                 ),
                                                 Center(
                                                   child: ListTile(
                                                     trailing:
                                                         const FlutterLogo(),
-                                                    title: Text("Card Used: " +
-                                                        lnapshots.data[snapshot
-                                                                    .data
-                                                                    .indexOf(snapshot
-                                                                            .data[
-                                                                        index])]
-                                                                ["Card Used"]
-                                                            .toString()),
+                                                    title: Text(
+                                                        "Card Used: ${transactionData["Card Used"]}"),
                                                   ),
                                                 ),
                                                 Center(
                                                   child: ListTile(
                                                     trailing:
                                                         const FlutterLogo(),
-                                                    title: Text("Date: " +
-                                                        lnapshots.data[snapshot
-                                                                .data
-                                                                .indexOf(snapshot
-                                                                        .data[
-                                                                    index])]["Date"]
-                                                            .toString()),
+                                                    title: Text(
+                                                        "Date: ${transactionData["Date"]}"),
                                                   ),
                                                 ),
                                               ],
@@ -444,27 +427,16 @@ class _MyStatefulWidgetStateTwo extends State<MyStatefulWidgetTwo> {
                                                   child: ListTile(
                                                     trailing:
                                                         const FlutterLogo(),
-                                                    title: Text("Money Spent: " +
-                                                        lnapshots.data[snapshot
-                                                                .data
-                                                                .indexOf(snapshot
-                                                                        .data[
-                                                                    index])]["Value"]
-                                                            .toString()),
+                                                    title: Text(
+                                                        "Money Spent: ${transactionData["Value"]}"),
                                                   ),
                                                 ),
                                                 Center(
                                                   child: ListTile(
                                                     trailing:
                                                         const FlutterLogo(),
-                                                    title: Text("Card Used: " +
-                                                        lnapshots.data[snapshot
-                                                                    .data
-                                                                    .indexOf(snapshot
-                                                                            .data[
-                                                                        index])]
-                                                                ["Card Used"]
-                                                            .toString()),
+                                                    title: Text(
+                                                        "Card Used: ${transactionData["Card Used"]}"),
                                                   ),
                                                 ),
                                                 Center(
@@ -472,14 +444,8 @@ class _MyStatefulWidgetStateTwo extends State<MyStatefulWidgetTwo> {
                                                     child: ListTile(
                                                       trailing:
                                                           const FlutterLogo(),
-                                                      title: Text("Location: " +
-                                                          lnapshots.data[
-                                                                  snapshot.data
-                                                                      .indexOf(snapshot
-                                                                              .data[
-                                                                          index])]
-                                                                  ["Location"]
-                                                              .toString()),
+                                                      title: Text(
+                                                          "Location: ${transactionData["Location"]}"),
                                                     ),
                                                   ),
                                                 ),
@@ -487,13 +453,8 @@ class _MyStatefulWidgetStateTwo extends State<MyStatefulWidgetTwo> {
                                                   child: ListTile(
                                                     trailing:
                                                         const FlutterLogo(),
-                                                    title: Text("Date: " +
-                                                        lnapshots.data[snapshot
-                                                                .data
-                                                                .indexOf(snapshot
-                                                                        .data[
-                                                                    index])]["Date"]
-                                                            .toString()),
+                                                    title: Text(
+                                                        "Date: ${transactionData["Date"]}"),
                                                   ),
                                                 ),
                                               ],
@@ -588,7 +549,7 @@ class _MyStatefulWidgetStateThree extends State<MyStatefulWidgetThree> {
                                 child: Center(
                                   child: Center(
                                       child: Text(
-                                    "Welcome back " + snapshot.data.toString(),
+                                    "Welcome back ${snapshot.data}",
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                         fontWeight: FontWeight.bold,
@@ -672,7 +633,7 @@ class _MyStatefulWidgetStatefinal extends State<MyStatefulWidgetfinal> {
             // sets the active color of the `BottomNavigationBar` if `Brightness` is light
             textTheme: Theme.of(context)
                 .textTheme
-                .copyWith(caption: const TextStyle(color: Colors.grey))),
+                .copyWith(bodySmall: const TextStyle(color: Colors.grey))),
         child: BottomNavigationBar(
           items: const <BottomNavigationBarItem>[
             BottomNavigationBarItem(

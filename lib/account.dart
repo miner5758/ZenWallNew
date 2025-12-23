@@ -106,10 +106,8 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
     setState(() {
       if (pickedFile != null) {
         _photo = File(pickedFile.path);
-        uploadFile();
-      } else {
-        print('No image selected.');
-      }
+        uploadFile(context);
+      } 
     });
   }
 
@@ -119,26 +117,40 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
     setState(() {
       if (pickedFile != null) {
         _photo = File(pickedFile.path);
-        uploadFile();
-      } else {
-        print('No image selected.');
-      }
+        uploadFile(context);
+      } 
     });
   }
 
-  Future uploadFile() async {
-    if (_photo == null) return;
-    final id = inputData();
-    final destination = '$id/profilePicture';
+Future uploadFile(BuildContext context) async { // Added context parameter
+  if (_photo == null) return;
+  final id = inputData();
+  final destination = '$id/profilePicture';
 
-    try {
-      final ref = FirebaseStorage.instance.ref(destination).child('file/');
-      await ref.putFile(_photo!);
-      printurl();
-    } catch (e) {
-      print('error occured');
-    }
+  try {
+    final ref = FirebaseStorage.instance.ref(destination).child('file/');
+    await ref.putFile(_photo!);
+    printurl();
+  } catch (e) {
+    if (!context.mounted) return; // Safety check
+
+    showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text("Upload Failed"),
+            content: Text(e.toString()), // Displays the actual error message
+            actions: [
+              TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Text("Close"))
+            ],
+          );
+        });
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -220,111 +232,80 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
 class _MyStatefulWidgetStateTwo extends State<MyStatefulWidgetTwo> {
   TextEditingController passwordcontroller = TextEditingController();
 
-  void deleteuser(String passwo) async {
-    bool ew = false;
-    var message = "";
+  Future<void> deleteuser(BuildContext context, String passwo) async {
+  final id = inputData(); // Get UID once at the start
 
+  try {
+    // --- 1. Delete Firestore Subcollections ---
+    // We wrap these in their own try/catch blocks so a failure here 
+    // doesn't stop the main account deletion process if you don't want it to.
+    
+    // Helper to delete a collection
+    Future<void> deleteCollection(String collectionPath) async {
+      try {
+        var snapshots = await db
+            .collection('Users')
+            .doc(id)
+            .collection(collectionPath)
+            .get();
+        for (var doc in snapshots.docs) {
+          await doc.reference.delete();
+        }
+      } catch (e) {
+        debugPrint("Error deleting $collectionPath: $e");
+      }
+    }
+
+    await deleteCollection("Cards");
+    await deleteCollection("Purchases");
+    await deleteCollection("Friends");
+
+    // Delete the main User Document
+    await db.collection('Users').doc(id).delete();
+
+    // --- 2. Delete Storage Files ---
     try {
-      final User? users = auth.currentUser;
-      UserCredential? authResult = await users?.reauthenticateWithCredential(
-        EmailAuthProvider.credential(
-            email: users.email.toString(), password: passwo),
-      );
-    } on FirebaseAuthException catch (e) {
-      ew = true;
-    }
-
-    if (ew == false) {
-      try {
-        var collection =
-            db.collection('Users').doc(inputData()).collection("Cards");
-        var snapshots = await collection.get();
-        for (var doc in snapshots.docs) {
-          await doc.reference.delete();
-        }
-      } catch (e) {
-        print(e.toString());
-      }
-
-      try {
-        var collection =
-            db.collection('Users').doc(inputData()).collection("Purchases");
-        var snapshots = await collection.get();
-        for (var doc in snapshots.docs) {
-          await doc.reference.delete();
-        }
-      } catch (e) {
-        print(e.toString());
-      }
-
-      try {
-        var collection =
-            db.collection('Users').doc(inputData()).collection("Friends");
-        var snapshots = await collection.get();
-        for (var doc in snapshots.docs) {
-          await doc.reference.delete();
-        }
-      } catch (e) {
-        print(e.toString());
-      }
-
-      db.collection('Users').doc(inputData()).delete();
-      try {
-        final id = inputData();
+      final listResult = await FirebaseStorage.instance
+          .ref('$id/profilePicture')
+          .listAll();
+          
+      if (listResult.items.isNotEmpty) {
+        // Delete the first file found (as per original logic)
         await FirebaseStorage.instance
-            .ref('$id/profilePicture')
-            .listAll()
-            .then((value) {
-          FirebaseStorage.instance.ref(value.items.first.fullPath).delete();
-        });
-      } catch (e) {
-        print(e.toString());
+            .ref(listResult.items.first.fullPath)
+            .delete();
       }
-
-      try {
-        final User? users = auth.currentUser;
-        UserCredential? authResult = await users?.reauthenticateWithCredential(
-          EmailAuthProvider.credential(
-              email: users.email.toString(), password: passwo),
-        );
-        final newuse = authResult?.user;
-        await newuse!
-            .delete()
-            .then(
-              (value) => message = 'Success',
-            )
-            .catchError((onError) => message = 'error');
-      } on FirebaseAuthException catch (e) {
-        print("Autism");
-      }
-    } else if (ew == true) {
-      message = "Not Changed";
+    } catch (e) {
+       debugPrint("Storage delete error: $e");
     }
 
-    if (message == "Not Changed") {
-      showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: const Text("Wrong Password"),
-              actions: [
-                TextButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    child: const Text("Try Again"))
-              ],
-            );
-          });
-    } else if (message == "Success") {
+    // --- 3. Authentication Deletion (Critical Step) ---
+    final User? user = auth.currentUser;
+    if (user != null) {
+      // Re-authenticate first
+      AuthCredential credential = EmailAuthProvider.credential(
+          email: user.email!, password: passwo);
+      
+      await user.reauthenticateWithCredential(credential);
+      
+      // Check mounted before proceeding to delete
+      if (!context.mounted) return; 
+
+      // Delete the user
+      await user.delete();
+
+      // --- Success Dialog ---
+      if (!context.mounted) return;
       showDialog(
           context: context,
           builder: (BuildContext context) {
             return AlertDialog(
               title: const Text("Complete!"),
+              content: const Text("Your account has been deleted."),
               actions: [
                 TextButton(
                     onPressed: () {
+                      // Go back to the very first screen (usually login)
                       Navigator.popUntil(context,
                           (Route<dynamic> predicate) => predicate.isFirst);
                     },
@@ -332,23 +313,56 @@ class _MyStatefulWidgetStateTwo extends State<MyStatefulWidgetTwo> {
               ],
             );
           });
-    } else {
-      showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: const Text("Something went wrong, please try again"),
-              actions: [
-                TextButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    child: const Text("Try Again"))
-              ],
-            );
-          });
     }
+
+  } on FirebaseAuthException catch (e) {
+    // --- Auth Error Handling ---
+    if (!context.mounted) return;
+
+    String title = "Authentication Error";
+    String message = e.message ?? "An error occurred";
+
+    if (e.code == 'wrong-password') {
+      title = "Wrong Password";
+      message = "The password you entered is incorrect.";
+    }
+
+    showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text(title),
+            content: Text(message),
+            actions: [
+              TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Text("Try Again"))
+            ],
+          );
+        });
+  } catch (e) {
+    // --- General Error Handling ---
+    if (!context.mounted) return;
+    
+    showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text("Something went wrong"),
+            content: Text(e.toString()),
+            actions: [
+              TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Text("Close"))
+            ],
+          );
+        });
   }
+}
 
   Timer? timer;
   bool isEmailverified = false;
@@ -376,16 +390,21 @@ class _MyStatefulWidgetStateTwo extends State<MyStatefulWidgetTwo> {
     super.dispose();
   }
 
-  Future sendVeficationEmail() async {
+ Future sendVeficationEmail() async {
     final User? user = auth.currentUser;
     final uid = user?.email;
     String tit = "A verification email has been sent to $uid's inbox!";
+
     try {
-      final User? user = auth.currentUser;
+      // Wait for the email to send
       await user?.sendEmailVerification();
     } catch (e) {
       tit = "Something went wrong, please try again!";
     }
+    
+    // FIX: Check if the widget is still on screen before showing the dialog
+    if (!mounted) return;
+
     showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -923,7 +942,7 @@ class _MyStatefulWidgetStateTwo extends State<MyStatefulWidgetTwo> {
                                                       TextButton(
                                                           onPressed: () {
                                                             deleteuser(
-                                                                passwordcontroller
+                                                                context,passwordcontroller
                                                                     .text);
                                                           },
                                                           child: const Text(
@@ -1434,7 +1453,7 @@ class _MyStatefulWidgetStateTwo extends State<MyStatefulWidgetTwo> {
                                                       TextButton(
                                                           onPressed: () {
                                                             deleteuser(
-                                                                passwordcontroller
+                                                                context,passwordcontroller
                                                                     .text);
                                                           },
                                                           child: const Text(

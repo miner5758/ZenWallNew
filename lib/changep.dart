@@ -186,9 +186,10 @@ class _MyStatefulWidgetStateTwo extends State<MyStatefulWidgetTwo> {
             (value) => message = 'Success',
           )
           .catchError((onError) => message = 'error');
-    } on FirebaseAuthException catch (e) {
+    } on FirebaseAuthException {
       message = "Not Changed";
     }
+    if (!mounted) return;
     if (message == "Not Changed") {
       showDialog(
           context: context,
@@ -361,10 +362,6 @@ class _MyStatefulWidgetStateTwo extends State<MyStatefulWidgetTwo> {
                 ),
                 width: MediaQuery.of(context).size.width * .90,
                 child: TextButton(
-                  child: const Text(
-                    'Submit',
-                    style: TextStyle(color: Colors.white),
-                  ),
                   onPressed: (() {
                     showDialog(
                       context: context,
@@ -436,6 +433,10 @@ class _MyStatefulWidgetStateTwo extends State<MyStatefulWidgetTwo> {
                       },
                     );
                   }),
+                  child: const Text(
+                    'Submit',
+                    style: TextStyle(color: Colors.white),
+                  ),
                 ))
           ],
         ),

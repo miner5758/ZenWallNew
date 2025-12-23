@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_credit_card/credit_card_brand.dart';
 import 'package:flutter_credit_card/flutter_credit_card.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -35,10 +34,10 @@ Future<List<String>> _getData() async {
 }
 
 Future<List<Object?>> _gettata(String? iD) async {
-  CollectionReference _collectionRef =
+  CollectionReference collectionRef =
       db.collection("Users").doc("$iD").collection("Cards");
   // Get docs from collection reference
-  QuerySnapshot querySnapshot = await _collectionRef.get();
+  QuerySnapshot querySnapshot = await collectionRef.get();
 
   // Get data from docs and convert map to List
   final allData = querySnapshot.docs.map((doc) => doc.data()).toList();
@@ -81,7 +80,7 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
   void initState() {
     border = OutlineInputBorder(
       borderSide: BorderSide(
-        color: Colors.grey.withOpacity(0.7),
+        color: Colors.grey.withValues(alpha: 0.7),
         width: 2.0,
       ),
     );
@@ -136,20 +135,38 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
     }
   }
 
-  Future<void> off(String name) async {
-    print("hi");
-    try {
-      final tost =
-          db.collection("Users").doc(inputData()).collection("Cards").doc(name);
+  Future<void> off(BuildContext context, String name) async {
+  try {
+    final tost =
+        db.collection("Users").doc(inputData()).collection("Cards").doc(name);
 
-      var batch = db.batch();
-      //Updates the field value, using post as document reference
-      batch.update(tost, {'Default': false});
-      batch.commit();
-    } catch (e) {
-      print(e);
-    }
+    var batch = db.batch();
+    // Updates the field value, using post as document reference
+    batch.update(tost, {'Default': false});
+    
+    // Added 'await' so we can actually catch errors if the commit fails
+    await batch.commit(); 
+  } catch (e) {
+    // Safety check
+    if (!context.mounted) return;
+
+    showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text("Error"),
+            content: Text(e.toString()),
+            actions: [
+              TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Text("Close"))
+            ],
+          );
+        });
   }
+}
 
   void toggleSwitch(bool value) {
     if (isSwitched == false) {
@@ -464,7 +481,7 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
                                                                     index])]
                                                             ["Default"] ==
                                                         true) {
-                                                      off(snapshot.data[index]
+                                                      off(context, snapshot.data[index]
                                                           .toString());
                                                       setState(() {});
                                                     } else if (lnapshots.data[snapshot
@@ -479,7 +496,7 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
                                                       setState(() {});
                                                     }
                                                   })),
-                                                  activeColor: Colors.blue,
+                                                  activeThumbColor: Colors.blue,
                                                   activeTrackColor:
                                                       Colors.yellow,
                                                   inactiveThumbColor:
@@ -512,10 +529,11 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
                                                 setState(() {});
                                               },
                                               child: const FittedBox(
+                                                  fit: BoxFit.fill,
                                                   child: Icon(
                                                     Icons.delete_outlined,
-                                                  ),
-                                                  fit: BoxFit.fill)),
+                                                  )
+                                                  )),
                                         ),
                                       ],
                                     );
@@ -575,7 +593,7 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
                                             child: Switch(
                                               onChanged: toggleSwitch,
                                               value: isSwitched,
-                                              activeColor: Colors.blue,
+                                              activeThumbColor: Colors.blue,
                                               activeTrackColor: Colors.yellow,
                                               inactiveThumbColor:
                                                   Colors.redAccent,
@@ -643,7 +661,7 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
                                             child: Switch(
                                               onChanged: reveal,
                                               value: isSwitchedtwo,
-                                              activeColor: Colors.blue,
+                                              activeThumbColor: Colors.blue,
                                               activeTrackColor: Colors.yellow,
                                               inactiveThumbColor:
                                                   Colors.redAccent,

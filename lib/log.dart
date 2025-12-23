@@ -27,11 +27,11 @@ class Logscreen extends StatelessWidget {
         ),
       ),
       body: Container(
-        child: const MyStatefulWidget(),
         decoration: const BoxDecoration(
             image: DecorationImage(
                 image: AssetImage("lib/images/teblutwo.jpg"),
                 fit: BoxFit.cover)),
+        child: const MyStatefulWidget(),
       ),
     );
   }
@@ -122,6 +122,7 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
                 },
               )),
           Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
               const Text('Dont have an account?'),
               TextButton(
@@ -138,7 +139,7 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
                 },
               )
             ],
-            mainAxisAlignment: MainAxisAlignment.center,
+            
           ),
         ],
       ),

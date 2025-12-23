@@ -39,11 +39,11 @@ class AlmostScrren extends StatelessWidget {
         ),
       ),
       body: Container(
-        child: const MyStatefulWidget(),
         decoration: const BoxDecoration(
             image: DecorationImage(
                 image: AssetImage("lib/images/teblutwo.jpg"),
                 fit: BoxFit.cover)),
+        child: const MyStatefulWidget(),
       ),
     );
   }
@@ -84,10 +84,8 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
     setState(() {
       if (pickedFile != null) {
         _photo = File(pickedFile.path);
-        uploadFile();
-      } else {
-        print('No image selected.');
-      }
+        uploadFile(context);
+      } 
     });
   }
 
@@ -97,26 +95,43 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
     setState(() {
       if (pickedFile != null) {
         _photo = File(pickedFile.path);
-        uploadFile();
-      } else {
-        print('No image selected.');
-      }
+        uploadFile(context);
+      } 
     });
   }
 
-  Future uploadFile() async {
-    if (_photo == null) return;
-    final id = inputData();
-    final destination = '$id/profilePicture';
+  Future uploadFile(BuildContext context) async {
+  if (_photo == null) return;
+  final id = inputData();
+  final destination = '$id/profilePicture';
 
-    try {
-      final ref = FirebaseStorage.instance.ref(destination).child('file/');
-      await ref.putFile(_photo!);
-      printurl();
-    } catch (e) {
-      print('error occured');
-    }
+  try {
+    final ref = FirebaseStorage.instance.ref(destination).child('file/');
+    await ref.putFile(_photo!);
+    printurl();
+  } catch (e) {
+    // Safety check: stop if the user has left the screen
+    if (!context.mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Upload Failed"),
+          content: const Text("An error occurred while uploading your picture. Please try again."),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text("Close"),
+            )
+          ],
+        );
+      },
+    );
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -132,9 +147,7 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
                   height: MediaQuery.of(context).size.height * .20,
                   width: (MediaQuery.of(context).size.width - 50),
                   child: Text(
-                    "Welcome To ZenPay " +
-                        snapshot.data.toString() +
-                        " Would you like to add a Debit Card Now(You can always do this later)",
+                    "Welcome To ZenPay ${snapshot.data} Would you like to add a Debit Card Now(You can always do this later)",
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                         fontWeight: FontWeight.bold, fontSize: 35),
@@ -183,11 +196,11 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
                       height: MediaQuery.of(context).size.height * .06,
                       width: MediaQuery.of(context).size.width * .45,
                       child: ElevatedButton(
-                        child: const Text('No'),
                         onPressed: (() {
                           Navigator.popUntil(context,
                               (Route<dynamic> predicate) => predicate.isFirst);
                         }),
+                        child: const Text('No'),
                       )),
                   SizedBox(
                     width: MediaQuery.of(context).size.width * .10,
@@ -196,7 +209,6 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
                       height: MediaQuery.of(context).size.height * .06,
                       width: MediaQuery.of(context).size.width * .45,
                       child: ElevatedButton(
-                        child: const Text('Yes'),
                         onPressed: (() {
                           Navigator.push(
                             context,
@@ -204,6 +216,7 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
                                 builder: (context) => const NewAddCreditPage()),
                           );
                         }),
+                        child: const Text('Yes'),
                       )),
                 ],
               )

@@ -41,7 +41,8 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
   String username = "";
   late Future resultsLoaded;
 
-  gettata() async {
+  // FIX: Added Future<String> type
+  Future<String> gettata() async {
     var data = await db
         .collection("Users")
         .where("ID", isNotEqualTo: inputData().toString())
@@ -65,6 +66,9 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
         .where("Default", isEqualTo: true)
         .get();
 
+    // FIX: Check mounted before calling setState
+    if (!mounted) return "failed";
+
     setState(() {
       _allResults = data.docs;
       _friendresults = datatwo.docs;
@@ -81,7 +85,8 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
     _percontroller.addListener(_onSearchChaned);
   }
 
-  _onSearchChaned() {
+  // FIX: Added void type
+  void _onSearchChaned() {
     searchResults();
   }
 
@@ -98,43 +103,57 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
     resultsLoaded = gettata();
   }
 
-  searchResults() {
+  // FIX: Added void type
+  void searchResults() {
     var showResults = [];
     if (_percontroller.text != "") {
       for (var tripSnapshot in _allResults) {
         var title = tripSnapshot["Username"].toString().toLowerCase();
         var number = tripSnapshot["Phone"].toString().toLowerCase();
         try {
-          four = _card[0]["Card Num"].toString();
+          if (_card.isNotEmpty) {
+            four = _card[0]["Card Num"].toString();
+          }
         } on Error {
           setState(() {
             def = false;
           });
         }
-        username = _username[0]["Username"];
+        if (_username.isNotEmpty) {
+          username = _username[0]["Username"];
+        }
+        
         if (title.contains(_percontroller.text.toLowerCase())) {
           showResults.add(tripSnapshot);
         } else if (number.contains(_percontroller.text)) {
           try {
-            four = _card[0]["Card Num"].toString();
+             if (_card.isNotEmpty) {
+               four = _card[0]["Card Num"].toString();
+             }
           } on Error {
             setState(() {
               def = false;
             });
           }
-          username = _username[0]["Username"];
+           if (_username.isNotEmpty) {
+             username = _username[0]["Username"];
+           }
           showResults.add(tripSnapshot);
         }
       }
     } else {
       try {
-        four = _card[0]["Card Num"].toString();
+         if (_card.isNotEmpty) {
+           four = _card[0]["Card Num"].toString();
+         }
       } on Error {
         setState(() {
           def = false;
         });
       }
-      username = _username[0]["Username"];
+       if (_username.isNotEmpty) {
+         username = _username[0]["Username"];
+       }
       showResults = List.from(_friendresults);
     }
     setState(() {
@@ -196,10 +215,11 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
                             _pc1.close();
                           },
                           child: const FittedBox(
-                              child: Icon(
-                                Icons.close,
-                              ),
-                              fit: BoxFit.fill)),
+                            fit: BoxFit.fill,
+                            child: Icon(
+                              Icons.close,
+                            ),
+                          )),
                     ),
                   ],
                 ),
@@ -297,11 +317,9 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
                                                   height: 10,
                                                 ),
                                                 Center(
+                                                  // FIX: String Interpolation
                                                   child: Text(
-                                                    _resultsList[index]
-                                                                ["Username"]
-                                                            .toString() +
-                                                        "?",
+                                                    "${_resultsList[index]["Username"]}?",
                                                     textAlign: TextAlign.center,
                                                     style: const TextStyle(
                                                         fontSize: 30,
@@ -366,7 +384,8 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
                                                             0xff4169e1),
                                                       ),
                                                       child: ElevatedButton(
-                                                        onPressed: () {
+                                                        // FIX: Made function async to handle database calls safely
+                                                        onPressed: () async {
                                                           String finalfour =
                                                               four.split(
                                                                   ' ')[3];
@@ -380,6 +399,7 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
                                                               formatter
                                                                   .format(now);
 
+                                                          // FIX: String Interpolation for "To ..."
                                                           final city = {
                                                             "Card Used":
                                                                 "Card Ending In $finalfour",
@@ -387,12 +407,7 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
                                                             "Date":
                                                                 formattedDate
                                                                     .toString(),
-                                                            "From": "To " +
-                                                                _resultsList[
-                                                                            index]
-                                                                        [
-                                                                        "Username"]
-                                                                    .toString(),
+                                                            "From": "To ${_resultsList[index]["Username"]}",
                                                             "Value":
                                                                 double.tryParse(
                                                                     tit),
@@ -401,15 +416,14 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
                                                           final id = UniqueKey()
                                                               .toString();
 
+                                                          // FIX: String Interpolation for "From ..."
                                                           final citytwo = {
                                                             "Card Used": "None",
                                                             "Transfer": true,
                                                             "Date":
                                                                 formattedDate
                                                                     .toString(),
-                                                            "From": "From " +
-                                                                username
-                                                                    .toString(),
+                                                            "From": "From $username",
                                                             "Value":
                                                                 double.tryParse(
                                                                     tit),
@@ -434,103 +448,62 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
                                                                   "Purchases")
                                                               .doc(id);
 
-                                                          collection
-                                                              .set(
-                                                                  city) // <-- Your data
-                                                              .catchError(
-                                                                (error) =>
-                                                                    showDialog(
-                                                                  context:
-                                                                      context,
-                                                                  builder: (BuildContext
-                                                                          context) =>
-                                                                      AlertDialog(
-                                                                    title:
-                                                                        const Text(
-                                                                      "Something Went Wrong, Please Try Again",
-                                                                      style: TextStyle(
-                                                                          fontSize:
-                                                                              30,
-                                                                          fontWeight:
-                                                                              FontWeight.bold),
-                                                                    ),
-                                                                    actions: [
-                                                                      TextButton(
-                                                                          onPressed:
-                                                                              () {
-                                                                            Navigator.pop(context);
-                                                                          },
-                                                                          child:
-                                                                              const Text("Close"))
-                                                                    ],
-                                                                  ),
-                                                                ),
-                                                              );
+                                                          // FIX: Replaced .then/.catchError with try/await/catch
+                                                          try {
+                                                            await collection.set(city);
+                                                            await othercoll.set(citytwo);
 
-                                                          othercoll
-                                                              .set(
-                                                                  citytwo) // <-- Your data
-                                                              .catchError(
-                                                                (error) =>
-                                                                    showDialog(
-                                                                  context:
-                                                                      context,
-                                                                  builder: (BuildContext
-                                                                          context) =>
-                                                                      AlertDialog(
-                                                                    title:
-                                                                        const Text(
-                                                                      "Something Went Wrong, Please Try Again",
-                                                                      style: TextStyle(
-                                                                          fontSize:
-                                                                              30,
-                                                                          fontWeight:
-                                                                              FontWeight.bold),
-                                                                    ),
-                                                                    actions: [
-                                                                      TextButton(
-                                                                          onPressed:
-                                                                              () {
-                                                                            Navigator.pop(context);
-                                                                          },
-                                                                          child:
-                                                                              const Text("Close"))
-                                                                    ],
-                                                                  ),
+                                                            // Check mounted before showing success dialog
+                                                            if (!context.mounted) return;
+
+                                                            showDialog(
+                                                              context: context,
+                                                              builder: (BuildContext context) =>
+                                                                  AlertDialog(
+                                                                title: const Text(
+                                                                  "Sent!",
+                                                                  style: TextStyle(
+                                                                      fontSize: 30,
+                                                                      fontWeight: FontWeight.bold),
                                                                 ),
-                                                              );
-                                                          showDialog(
-                                                            context: context,
-                                                            builder: (BuildContext
-                                                                    context) =>
-                                                                AlertDialog(
-                                                              title: const Text(
-                                                                "Sent!",
-                                                                style: TextStyle(
-                                                                    fontSize:
-                                                                        30,
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .bold),
+                                                                actions: [
+                                                                  TextButton(
+                                                                    onPressed: () {
+                                                                      Navigator.push(
+                                                                        context,
+                                                                        MaterialPageRoute(
+                                                                            builder: (context) => const Homescreen()),
+                                                                      );
+                                                                    },
+                                                                    child: const Text("Close"),
+                                                                  )
+                                                                ],
                                                               ),
-                                                              actions: [
-                                                                TextButton(
-                                                                  onPressed:
-                                                                      () {
-                                                                    Navigator
-                                                                        .push(
-                                                                      context,
-                                                                      MaterialPageRoute(
-                                                                          builder: (context) =>
-                                                                              const Homescreen()),
-                                                                    );
-                                                                  },
-                                                                  child: const Text(
-                                                                      "Close"),
-                                                                )
-                                                              ],
-                                                            ),
-                                                          );
+                                                            );
+                                                          } catch (error) {
+                                                            // Check mounted before showing error dialog
+                                                            if (!context.mounted) return;
+
+                                                            showDialog(
+                                                              context: context,
+                                                              builder: (BuildContext context) =>
+                                                                  AlertDialog(
+                                                                title: const Text(
+                                                                  "Something Went Wrong, Please Try Again",
+                                                                  style: TextStyle(
+                                                                      fontSize: 30,
+                                                                      fontWeight: FontWeight.bold),
+                                                                ),
+                                                                actions: [
+                                                                  TextButton(
+                                                                      onPressed: () {
+                                                                        Navigator.pop(context);
+                                                                      },
+                                                                      child: const Text("Close"))
+                                                                ],
+                                                              ),
+                                                            );
+                                                          }
                                                         },
                                                         child:
                                                             const Text("Send"),
@@ -581,326 +554,41 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
                 SizedBox(
                   height: MediaQuery.of(context).size.height * 0.08,
                 ),
+                // Below are all the Numpad buttons. I fixed the interpolation for all of them.
                 Center(
                   child: Row(
                     children: [
-                      Container(
-                        alignment: Alignment.center,
-                        decoration: const BoxDecoration(
-                            shape: BoxShape.circle, color: Colors.white),
-                        width: MediaQuery.of(context).size.width * 0.33,
-                        height: MediaQuery.of(context).size.height * .12,
-                        child: InkWell(
-                          splashColor: Colors.blue,
-                          onTap: () {
-                            setState(
-                              () {
-                                if (tit.length == 7) {
-                                  tit = tit;
-                                } else {
-                                  tit = tit + "1";
-                                }
-                                if (tit.contains('.')) {
-                                  final decitit = tit.split('.');
-                                  if (decitit[1].length == 3) {
-                                    tit = tit.substring(
-                                        0, tit.lastIndexOf('.') + 3);
-                                  }
-                                }
-                              },
-                            );
-                          },
-                          child: const Center(
-                              child: Text(
-                            "1",
-                            style: TextStyle(
-                                fontSize: 40, fontWeight: FontWeight.bold),
-                          )),
-                        ),
-                      ),
-                      Container(
-                        alignment: Alignment.center,
-                        decoration: const BoxDecoration(
-                            shape: BoxShape.circle, color: Colors.white),
-                        width: MediaQuery.of(context).size.width * 0.33,
-                        height: MediaQuery.of(context).size.height * .12,
-                        child: InkWell(
-                          splashColor: Colors.blue,
-                          onTap: () {
-                            setState(() {
-                              if (tit.length == 7) {
-                                tit = tit;
-                              } else {
-                                tit = tit + "2";
-                              }
-                              if (tit.contains('.')) {
-                                final decitit = tit.split('.');
-                                if (decitit[1].length == 3) {
-                                  tit = tit.substring(
-                                      0, tit.lastIndexOf('.') + 3);
-                                }
-                              }
-                            });
-                          },
-                          child: const Center(
-                              child: Text(
-                            "2",
-                            style: TextStyle(
-                                fontSize: 40, fontWeight: FontWeight.bold),
-                          )),
-                        ),
-                      ),
-                      Container(
-                        alignment: Alignment.center,
-                        decoration: const BoxDecoration(
-                            shape: BoxShape.circle, color: Colors.white),
-                        width: MediaQuery.of(context).size.width * 0.33,
-                        height: MediaQuery.of(context).size.height * .12,
-                        child: InkWell(
-                          splashColor: Colors.blue,
-                          onTap: () {
-                            setState(() {
-                              if (tit.length == 7) {
-                                tit = tit;
-                              } else {
-                                tit = tit + "3";
-                              }
-                              if (tit.contains('.')) {
-                                final decitit = tit.split('.');
-                                if (decitit[1].length == 3) {
-                                  tit = tit.substring(
-                                      0, tit.lastIndexOf('.') + 3);
-                                }
-                              }
-                            });
-                          },
-                          child: const Center(
-                              child: Text(
-                            "3",
-                            style: TextStyle(
-                                fontSize: 40, fontWeight: FontWeight.bold),
-                          )),
-                        ),
-                      ),
+                      _buildNumKey(context, "1"),
+                      _buildNumKey(context, "2"),
+                      _buildNumKey(context, "3"),
                     ],
                   ),
                 ),
-                const SizedBox(
-                  height: 10,
-                ),
+                const SizedBox(height: 10),
                 Center(
                   child: Row(
                     children: [
-                      Container(
-                        alignment: Alignment.center,
-                        decoration: const BoxDecoration(
-                            shape: BoxShape.circle, color: Colors.white),
-                        width: MediaQuery.of(context).size.width * 0.33,
-                        height: MediaQuery.of(context).size.height * .12,
-                        child: InkWell(
-                          splashColor: Colors.blue,
-                          onTap: () {
-                            setState(() {
-                              if (tit.length == 7) {
-                                tit = tit;
-                              } else {
-                                tit = tit + "4";
-                              }
-                              if (tit.contains('.')) {
-                                final decitit = tit.split('.');
-                                if (decitit[1].length == 3) {
-                                  tit = tit.substring(
-                                      0, tit.lastIndexOf('.') + 3);
-                                }
-                              }
-                            });
-                          },
-                          child: const Center(
-                              child: Text(
-                            "4",
-                            style: TextStyle(
-                                fontSize: 40, fontWeight: FontWeight.bold),
-                          )),
-                        ),
-                      ),
-                      Container(
-                        alignment: Alignment.center,
-                        decoration: const BoxDecoration(
-                            shape: BoxShape.circle, color: Colors.white),
-                        width: MediaQuery.of(context).size.width * 0.33,
-                        height: MediaQuery.of(context).size.height * .12,
-                        child: InkWell(
-                          splashColor: Colors.blue,
-                          onTap: () {
-                            setState(() {
-                              if (tit.length == 7) {
-                                tit = tit;
-                              } else {
-                                tit = tit + "5";
-                              }
-                              if (tit.contains('.')) {
-                                final decitit = tit.split('.');
-                                if (decitit[1].length == 3) {
-                                  tit = tit.substring(
-                                      0, tit.lastIndexOf('.') + 3);
-                                }
-                              }
-                            });
-                          },
-                          child: const Center(
-                              child: Text(
-                            "5",
-                            style: TextStyle(
-                                fontSize: 40, fontWeight: FontWeight.bold),
-                          )),
-                        ),
-                      ),
-                      Container(
-                        alignment: Alignment.center,
-                        decoration: const BoxDecoration(
-                            shape: BoxShape.circle, color: Colors.white),
-                        width: MediaQuery.of(context).size.width * 0.33,
-                        height: MediaQuery.of(context).size.height * .12,
-                        child: InkWell(
-                          splashColor: Colors.blue,
-                          onTap: () {
-                            setState(() {
-                              if (tit.length == 7) {
-                                tit = tit;
-                              } else {
-                                tit = tit + "6";
-                              }
-                              if (tit.contains('.')) {
-                                final decitit = tit.split('.');
-                                if (decitit[1].length == 3) {
-                                  tit = tit.substring(
-                                      0, tit.lastIndexOf('.') + 3);
-                                }
-                              }
-                            });
-                          },
-                          child: const Center(
-                              child: Text(
-                            "6",
-                            style: TextStyle(
-                                fontSize: 40, fontWeight: FontWeight.bold),
-                          )),
-                        ),
-                      ),
+                      _buildNumKey(context, "4"),
+                      _buildNumKey(context, "5"),
+                      _buildNumKey(context, "6"),
                     ],
                   ),
                 ),
-                const SizedBox(
-                  height: 10,
-                ),
+                const SizedBox(height: 10),
                 Center(
                   child: Row(
                     children: [
-                      Container(
-                        alignment: Alignment.center,
-                        decoration: const BoxDecoration(
-                            shape: BoxShape.circle, color: Colors.white),
-                        width: MediaQuery.of(context).size.width * 0.33,
-                        height: MediaQuery.of(context).size.height * .12,
-                        child: InkWell(
-                          splashColor: Colors.blue,
-                          onTap: () {
-                            setState(() {
-                              if (tit.length == 7) {
-                                tit = tit;
-                              } else {
-                                tit = tit + "7";
-                              }
-                              if (tit.contains('.')) {
-                                final decitit = tit.split('.');
-                                if (decitit[1].length == 3) {
-                                  tit = tit.substring(
-                                      0, tit.lastIndexOf('.') + 3);
-                                }
-                              }
-                            });
-                          },
-                          child: const Center(
-                              child: Text(
-                            "7",
-                            style: TextStyle(
-                                fontSize: 40, fontWeight: FontWeight.bold),
-                          )),
-                        ),
-                      ),
-                      Container(
-                        alignment: Alignment.center,
-                        decoration: const BoxDecoration(
-                            shape: BoxShape.circle, color: Colors.white),
-                        width: MediaQuery.of(context).size.width * 0.33,
-                        height: MediaQuery.of(context).size.height * .12,
-                        child: InkWell(
-                          splashColor: Colors.blue,
-                          onTap: () {
-                            setState(() {
-                              if (tit.length == 7) {
-                                tit = tit;
-                              } else {
-                                tit = tit + "8";
-                              }
-                              if (tit.contains('.')) {
-                                final decitit = tit.split('.');
-                                if (decitit[1].length == 3) {
-                                  tit = tit.substring(
-                                      0, tit.lastIndexOf('.') + 3);
-                                }
-                              }
-                            });
-                          },
-                          child: const Center(
-                              child: Text(
-                            "8",
-                            style: TextStyle(
-                                fontSize: 40, fontWeight: FontWeight.bold),
-                          )),
-                        ),
-                      ),
-                      Container(
-                        alignment: Alignment.center,
-                        decoration: const BoxDecoration(
-                            shape: BoxShape.circle, color: Colors.white),
-                        width: MediaQuery.of(context).size.width * 0.33,
-                        height: MediaQuery.of(context).size.height * .12,
-                        child: InkWell(
-                          splashColor: Colors.blue,
-                          onTap: () {
-                            setState(() {
-                              if (tit.length == 7) {
-                                tit = tit;
-                              } else {
-                                tit = tit + "9";
-                              }
-                              if (tit.contains('.')) {
-                                final decitit = tit.split('.');
-                                if (decitit[1].length == 3) {
-                                  tit = tit.substring(
-                                      0, tit.lastIndexOf('.') + 3);
-                                }
-                              }
-                            });
-                          },
-                          child: const Center(
-                              child: Text(
-                            "9",
-                            style: TextStyle(
-                                fontSize: 40, fontWeight: FontWeight.bold),
-                          )),
-                        ),
-                      ),
+                      _buildNumKey(context, "7"),
+                      _buildNumKey(context, "8"),
+                      _buildNumKey(context, "9"),
                     ],
                   ),
                 ),
-                const SizedBox(
-                  height: 10,
-                ),
+                const SizedBox(height: 10),
                 Center(
                   child: Row(
                     children: [
+                      // "." Key
                       Container(
                         decoration: const BoxDecoration(
                             shape: BoxShape.circle, color: Colors.white),
@@ -916,7 +604,8 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
                                   tit.length >= 5) {
                                 tit = tit;
                               } else {
-                                tit = tit + ".";
+                                // FIX: Interpolation
+                                tit = "$tit.";
                               }
                             });
                           },
@@ -928,6 +617,7 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
                           )),
                         ),
                       ),
+                      // "0" Key
                       Container(
                         alignment: Alignment.center,
                         decoration: const BoxDecoration(
@@ -941,7 +631,8 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
                               if (tit.length == 7 || tit.isEmpty) {
                                 tit = tit;
                               } else {
-                                tit = tit + "0";
+                                // FIX: Interpolation
+                                tit = "${tit}0";
                               }
                               if (tit.contains('.')) {
                                 final decitit = tit.split('.');
@@ -960,6 +651,7 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
                           )),
                         ),
                       ),
+                      // Backspace Key
                       Container(
                         alignment: Alignment.center,
                         decoration: const BoxDecoration(
@@ -1060,7 +752,8 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
                           color: const Color(0xff4169e1),
                         ),
                         child: ElevatedButton(
-                          onPressed: () => print("object"),
+                          // FIX: Used debugPrint
+                          onPressed: () => debugPrint("object"),
                           child: const Center(child: Text("Request")),
                         )),
                   ]),
@@ -1069,6 +762,45 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  // Helper widget to reduce code repetition for Number Keys
+  Widget _buildNumKey(BuildContext context, String num) {
+    return Container(
+      alignment: Alignment.center,
+      decoration: const BoxDecoration(
+          shape: BoxShape.circle, color: Colors.white),
+      width: MediaQuery.of(context).size.width * 0.33,
+      height: MediaQuery.of(context).size.height * .12,
+      child: InkWell(
+        splashColor: Colors.blue,
+        onTap: () {
+          setState(
+            () {
+              if (tit.length == 7) {
+                tit = tit;
+              } else {
+                // FIX: Interpolation
+                tit = "$tit$num";
+              }
+              if (tit.contains('.')) {
+                final decitit = tit.split('.');
+                if (decitit[1].length == 3) {
+                  tit = tit.substring(
+                      0, tit.lastIndexOf('.') + 3);
+                }
+              }
+            },
+          );
+        },
+        child: Center(
+            child: Text(
+          num,
+          style: const TextStyle(
+              fontSize: 40, fontWeight: FontWeight.bold),
+        )),
       ),
     );
   }

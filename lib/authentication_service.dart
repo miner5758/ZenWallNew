@@ -19,6 +19,7 @@ class AuthenticationService {
           email: email, password: password);
       return "Signed in";
     } on FirebaseAuthException catch (e) {
+      if (!context.mounted) return e.message.toString();
       if (e.message.toString() ==
           "There is no user record corresponding to this identifier. The user may have been deleted.") {
         showDialog(

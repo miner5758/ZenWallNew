@@ -42,7 +42,8 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
   String username = "";
   late Future resultsLoaded;
 
-  gettata() async {
+  // FIX: Added Return Type 'Future<String>'
+  Future<String> gettata() async {
     var user = await db
         .collection("Users")
         .where("ID", isEqualTo: inputData().toString())
@@ -53,6 +54,9 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
         .doc(inputData())
         .collection("Friends")
         .get();
+
+    // FIX: Added safety check to prevent crash if widget is closed
+    if (!mounted) return "failed";
 
     setState(() {
       _friendresults = datatwo.docs;
@@ -68,7 +72,8 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
     _percontroller.addListener(_onSearchChaned);
   }
 
-  _onSearchChaned() {
+  // FIX: Added Return Type 'void'
+  void _onSearchChaned() {
     searchResults();
   }
 
@@ -85,23 +90,32 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
     resultsLoaded = gettata();
   }
 
-  searchResults() {
+  // FIX: Added Return Type 'void'
+  void searchResults() {
     var showResults = [];
     if (_percontroller.text != "") {
       for (var tripSnapshot in _friendresults) {
         var title = tripSnapshot["Username"].toString().toLowerCase();
         var number = tripSnapshot["Phone"].toString().toLowerCase();
 
-        username = _username[0]["Username"];
+        // Safety check if _username is empty
+        if (_username.isNotEmpty) {
+           username = _username[0]["Username"];
+        }
+        
         if (title.contains(_percontroller.text.toLowerCase())) {
           showResults.add(tripSnapshot);
         } else if (number.contains(_percontroller.text)) {
-          username = _username[0]["Username"];
+           if (_username.isNotEmpty) {
+             username = _username[0]["Username"];
+           }
           showResults.add(tripSnapshot);
         }
       }
     } else {
-      username = _username[0]["Username"];
+       if (_username.isNotEmpty) {
+          username = _username[0]["Username"];
+       }
       showResults = List.from(_friendresults);
     }
     setState(() {
@@ -177,7 +191,8 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
                             title: Text(
                                 _resultsList[index]["Username"].toString()),
                             onTap: () {
-                              print(_resultsList[index]["Username"].toString());
+                              // FIX: Changed print to debugPrint
+                              debugPrint(_resultsList[index]["Username"].toString());
                             }),
                       ),
                     );
